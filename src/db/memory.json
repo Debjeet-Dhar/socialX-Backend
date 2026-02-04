@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "_id": "df706092-cf3a-4352-a4c7-88617225cdc4",
+      "username": "Jeet_007",
+      "name": "Debjeet dhar",
+      "email": "jeet@jeet.com",
+      "password": "123456789",
+      "bio": "",
+      "avatar": "",
+      "followersCount": 0,
+      "followingCount": 0,
+      "postsCount": 0,
+      "createdAt": 1770185747266
+    }
+  ],
+  "posts": [
+    {
+      "_id": "ef1a1b0e-4299-4c9f-870f-9be8ea59630b",
+      "userId": "df706092-cf3a-4352-a4c7-88617225cdc4",
+      "caption": "hey india 02 !!",
+      "likes": 1,
+      "createdAt": 1770185767140
+    }
+  ],
+  "likes": [
+    {
+      "_id": "b88ceceb-5cb3-4397-94b5-faf7aec798d3",
+      "userId": "df706092-cf3a-4352-a4c7-88617225cdc4",
+      "postId": "ef1a1b0e-4299-4c9f-870f-9be8ea59630b"
+    }
+  ],
+  "comments": []
+}
