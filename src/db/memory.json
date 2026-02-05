@@ -1,0 +1,66 @@
+{
+  "users": [
+    {
+      "_id": "0746707e-0eb5-4140-881d-7ec40f63890b",
+      "username": "Jeet_004",
+      "name": "Debjeet",
+      "email": "jeet@dhar.com",
+      "password": "123456789",
+      "bio": "",
+      "avatar": "",
+      "followersCount": 0,
+      "followingCount": 0,
+      "postsCount": 0,
+      "createdAt": 1770268307372
+    }
+  ],
+  "posts": [
+    {
+      "_id": "5683deb4-b943-4629-8554-dc0f0f9799e7",
+      "userId": "0746707e-0eb5-4140-881d-7ec40f63890b",
+      "caption": "OG Dragon ball finish",
+      "likes": 1,
+      "comment": 2,
+      "createdAt": 1770268473655
+    }
+  ],
+  "likes": [
+    {
+      "_id": "6fa8f0fc-c0b5-4934-802b-c98a7e42958d",
+      "userId": "0746707e-0eb5-4140-881d-7ec40f63890b",
+      "postId": "5683deb4-b943-4629-8554-dc0f0f9799e7"
+    }
+  ],
+  "comments": [
+    {
+      "_id": "23bd1181-0ecb-442a-b011-4204268d773f",
+      "userID": "0746707e-0eb5-4140-881d-7ec40f63890b",
+      "postid": "5683deb4-b943-4629-8554-dc0f0f9799e7",
+      "comment": "I finish it alsooo ",
+      "reply": [
+        {
+          "_id": "44698e2a-9f86-40c1-a9dc-a66a6651d730",
+          "userId": "0746707e-0eb5-4140-881d-7ec40f63890b",
+          "reply": "✅✅✅✅",
+          "createdAt": 1770268857866
+        }
+      ],
+      "createdAt": 1770268790970
+    },
+    {
+      "_id": "79e3de9c-9bd8-43af-9d92-1064b2b21e21",
+      "userID": "0746707e-0eb5-4140-881d-7ec40f63890b",
+      "postid": "5683deb4-b943-4629-8554-dc0f0f9799e7",
+      "comment": "I finish it in 2020 ",
+      "reply": [
+        {
+          "_id": "57f9deed-ecd9-4324-999a-c8af9afc8afb",
+          "userId": "0746707e-0eb5-4140-881d-7ec40f63890b",
+          "reply": "congratulation",
+          "createdAt": 1770268898300
+        }
+      ],
+      "createdAt": 1770268820126
+    }
+  ]
+}
