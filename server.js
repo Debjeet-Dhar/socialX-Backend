@@ -263,7 +263,7 @@ app.post("/auth/reset-password", (req, res) => {
 });
 
 //Logout
-app.post("/auth/logout", (req, res) => {
+app.post("/auth/logout", protect,(req, res) => {
   res.clearCookie("token");
   res.json({ message: "Logged out successfully" });
 });
@@ -292,7 +292,7 @@ app.get("/user/:username",protect ,(req, res) => {
   });
 });
 
-app.get('/profile/me', protect , (req,res)=>{
+app.get('/profile/me', protect, (req,res)=>{
   
   const db = loadData()
 
@@ -306,6 +306,7 @@ app.get('/profile/me', protect , (req,res)=>{
     const {password:_ , ...safeuser} = user
 
      res.status(200).json({
+      message:"user data fetching successfully",
     success: true,
     user: safeuser
   });
@@ -313,7 +314,7 @@ app.get('/profile/me', protect , (req,res)=>{
 })
 
 //update user detais
-app.put('/user/profile/edit' , protect , (req,res)=>{
+app.put('/user/profile/edit' ,protect ,(req,res)=>{
   const {username , name  , bio , avatar } = req.body
 
    const db = loadData();
@@ -338,7 +339,7 @@ app.put('/user/profile/edit' , protect , (req,res)=>{
 
 })
 
-app.post('/post/like/:postId', protect ,(req,res)=>{
+app.post('/post/like/:postId', protect,(req,res)=>{
 
   const postId = req.params.postId
   const userId = req.userId
@@ -372,34 +373,44 @@ app.post('/post/like/:postId', protect ,(req,res)=>{
 
 })
 
-app.get('/post/get-post', (req,res)=>{
+app.get('/post/get-post',protect, (req,res)=>{
   const db = loadData()
 
-  if(!db.posts.length > 0) return res.status(404).json({
+  if(db.posts.length < 0) return res.status(404).json({
     message:"no post",
     success:false
   })
    return res.status(200).json({
     message:"post fetching successfully",
     success:true,
-    post:db.posts
-
+    post:db.posts,
+    comment:db.comments,
+    likes:db.likes
    });
 })
 
-app.post('/post/create', protect ,(req,res)=>{
+app.post('/post/create', (req,res)=>{
   const {caption} = req.body
+  const token = req.cookies.token
+  if(!token) return res.status(401).json({
+    message:"Unauthorized user",
+    success:false
+  })
+
   const db = loadData()
-  const user = db.users.find((u)=>u._id === req.userId)
+  try {
+    const decoded = jwt.verify(token , process.env.SECRET_CODE)
+    const user = db.users.find((u)=>u._id === decoded.userId)
 
    if (!user)
       return res.status(404).json({ message: "User not found" });
 
    const createPost = {
     _id:id(),
-    userId:req.userId,
+    userId:decoded.userId,
     caption,
     likes: 0,
+    comment:0,
     createdAt: Date.now(),
 
    }
@@ -411,31 +422,60 @@ app.post('/post/create', protect ,(req,res)=>{
     success:true,
     post:createPost
    })
-  
+    
+  } catch (error) {
+     return res.status(401).json({
+      message: "Invalid or expired token",
+      success: false,
+      error
+    });
+    
+  }
 })
 
-app.post('/post/comment/:postid',protect , (req,res)=>{
-const db = loadData()
-const userID = req.userId
-const postid = req.params.postid
-const {text} = req.body
+app.post('/post/comment/:postid',(req,res)=>{
+  const token = req.cookies.token
+  if(!token) return res.status(401).json({
+    message:"Unauthorized user",
+    success:false
+  })
 
-const user = db.users.find((u)=>u._id === userID)
+  const {text} = req.body
+
+  if(!text) return res.status(400).json({
+    message:"Comment is required",
+    success:false
+  })
+
+
+const db = loadData()
+const postid = req.params.postid
+
+try {
+  const decoded = jwt.verify(token , process.env.SECRET_CODE);
+  const user = db.users.find((u)=>u._id === decoded.userId);
 
 if(!user) return res.status(404).json({
   message:" user not found",
-  screen:true
+  screen:false
+})
+const post = db.posts.find((p)=>p._id === postid)
+
+if(!post) return res.status(404).json({
+  message:"post not found",
+  success:false
 })
 
  const Addcomment = {
-  id:id(),
-  userID,
+  _id:id(),
+  userID:decoded.userId,
   postid,
   comment:text,
   reply:[],
   createdAt: Date.now(),
  }
-   db.comments.push(Addcomment);
+ db.comments.push(Addcomment);
+ post.comment+=1;
 
    saveData(db);
 
@@ -444,6 +484,71 @@ if(!user) return res.status(404).json({
     success:true
    })
 
+  
+} catch (error) {
+   return res.status(401).json({
+      message: "Invalid or expired token",
+      success: false,
+      error
+    });
+  
+}
+
+
+})
+
+app.post('/post/comment/reply/:commentId' , (req,res)=>{
+
+  const token = req.cookies.token
+ const {reply}= req.body
+ if(!reply) return res.status(400).json({
+  message:"reply text required"
+ }) 
+
+  if(!token) return res.status(401).json({
+    message:"Unauthorized User",
+    success:false
+  })
+  const db = loadData();
+
+  try {
+       const decoded = jwt.verify(token, process.env.SECRET_CODE);
+
+    const user = db.users.find(u => u._id === decoded.userId);
+    if(!user) return res.status(404).json({
+      message:"user not found",
+      success:false
+    })
+
+  const comment = db.comments.find((p) => p._id === req.params.commentId);
+
+  if(!comment) return res.status(404).json({
+    message:"comment not found",
+    success:false
+  })
+  
+   const addReply = {
+    _id:id(),
+    userId:decoded.userId,
+    reply,
+    createdAt:Date.now()
+   }
+
+   comment.reply.push(addReply)
+   saveData(db)
+
+   return res.status(201).json({
+    message:"Reply Added",
+    success:true
+   })
+
+  } catch (error) {
+     return res.status(401).json({
+      message: "Invalid or expired token",
+      success: false,
+      error
+    });
+  }
 })
 
 //RUNNING
