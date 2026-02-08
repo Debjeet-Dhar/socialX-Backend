@@ -5,6 +5,8 @@ import "dotenv/config";
 import crypto from "crypto";
 import jwt from "jsonwebtoken"
 import { loadData, saveData } from "./src/db/db.js";
+import {finduserByid, finduserByUsername , finduserByEmail } from "./src/utils/user.js";
+import { findcommentByid, findpostbyid } from "./src/utils/post.js";
 
 
 const app = express();
@@ -54,8 +56,8 @@ app.post("/auth/register", (req, res) => {
 
   // u.username === username ||
 
-  const existuser = db.users.find((u) => u.email === email);
-  const exitstUsername = db.users.find((u)=>u.username === username);
+  const existuser = finduserByEmail(email);
+  const exitstUsername = finduserByUsername(username)
   if (existuser)
     return res.status(409).json({
       message: "user already registered",
@@ -111,9 +113,9 @@ app.post("/auth/login", (req, res) => {
 
   const db = loadData();
 
-  const isuserregistered = db.users.find((u) => u.email === email);
+  const isRegistered = finduserByEmail(email);
 
-  if (!isuserregistered)
+  if (!isRegistered)
     return res.status(409).json({
       message: "User Not registered",
       success: false,
@@ -160,7 +162,7 @@ app.post("/auth/forgot-password",(req,res)=>{
   })
 
   const db = loadData()
-  const user = db.users.find((u)=>u.email === email)
+  const user = finduserByEmail(email)
 
   if(!user) return res.status(404).json({
     message:"user not found",
@@ -184,9 +186,9 @@ app.post("/auth/forgot-password",(req,res)=>{
 // verify OTP
 
 app.post('/auth/verify-otp', (req, res) => {
-  const { email, otp } = req.body;
+  const {email, otp } = req.body;
 
-  if (!email || !otp)
+  if (!emit ||!otp)
     return res.status(400).json({
       message: "All fields are required",
       success: false
@@ -194,7 +196,7 @@ app.post('/auth/verify-otp', (req, res) => {
 
   const db = loadData();
 
-  const user = db.users.find(u => u.email === email);
+  const user = finduserByEmail(email);
 
   if (!user)
     return res.status(404).json({ message: "User not found" });
@@ -238,7 +240,7 @@ app.post("/auth/reset-password", (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.SECRET_CODE);
 
-    const user = db.users.find(u => u._id === decoded.userId);
+    const user = finduserByid(decoded.userId);
 
     if (!user)
       return res.status(404).json({ message: "User not found" });
@@ -296,7 +298,7 @@ app.get('/profile/me', protect, (req,res)=>{
   
   const db = loadData()
 
-  const user = db.users.find((u)=>u._id === req.userId)
+  const user = finduserByid(req.userId)
 
    if (!user)
     return res.status(404).json({
@@ -318,7 +320,7 @@ app.put('/user/profile/edit' ,protect ,(req,res)=>{
   const {username , name  , bio , avatar } = req.body
 
    const db = loadData();
-  const user = db.users.find(u => u._id === req.userId);
+  const user = finduserByid(req.userId)
 
   if (!user)
     return res.status(404).json({ message: "User not found" });
@@ -344,8 +346,14 @@ app.post('/post/like/:postId', protect,(req,res)=>{
   const postId = req.params.postId
   const userId = req.userId
    const db = loadData()
-  const user = db.users.find((u)=>u._id === userId)
+  const user = finduserByid(userId)
 
+     const post = findpostbyid(postId)
+     if(!post) return res.status(404).json({
+      message:"Post not found",
+      success:false
+     })
+       post.likesCount+=1;
    if (!user)
     return res.status(404).json({
       message: "user not found",
@@ -362,8 +370,8 @@ app.post('/post/like/:postId', protect,(req,res)=>{
 
   db.likes.push({ _id: id(), userId, postId });
 
-   const post = db.posts.find((p) => p._id === postId);
-  if (post) post.likes+=1;
+
+  
 
   saveData(db);
 
@@ -391,6 +399,7 @@ app.get('/post/get-post',protect, (req,res)=>{
 
 app.post('/post/create', (req,res)=>{
   const {caption} = req.body
+
   const token = req.cookies.token
   if(!token) return res.status(401).json({
     message:"Unauthorized user",
@@ -400,7 +409,7 @@ app.post('/post/create', (req,res)=>{
   const db = loadData()
   try {
     const decoded = jwt.verify(token , process.env.SECRET_CODE)
-    const user = db.users.find((u)=>u._id === decoded.userId)
+    const user = finduserByid(decoded.userId)
 
    if (!user)
       return res.status(404).json({ message: "User not found" });
@@ -409,8 +418,8 @@ app.post('/post/create', (req,res)=>{
     _id:id(),
     userId:decoded.userId,
     caption,
-    likes: 0,
-    comment:0,
+    likesCount: 0,
+    commentsCount:0,
     createdAt: Date.now(),
 
    }
@@ -453,13 +462,13 @@ const postid = req.params.postid
 
 try {
   const decoded = jwt.verify(token , process.env.SECRET_CODE);
-  const user = db.users.find((u)=>u._id === decoded.userId);
+  const user = finduserByid(decoded.userId)
 
 if(!user) return res.status(404).json({
   message:" user not found",
-  screen:false
+  success:false
 })
-const post = db.posts.find((p)=>p._id === postid)
+const post = findpostbyid(postid)
 
 if(!post) return res.status(404).json({
   message:"post not found",
@@ -469,13 +478,13 @@ if(!post) return res.status(404).json({
  const Addcomment = {
   _id:id(),
   userID:decoded.userId,
-  postid,
-  comment:text,
-  reply:[],
+  postID:postid,
+  comments:text,
+  replies:[],
   createdAt: Date.now(),
  }
  db.comments.push(Addcomment);
- post.comment+=1;
+ post.commentsCount+=1;
 
    saveData(db);
 
@@ -491,10 +500,7 @@ if(!post) return res.status(404).json({
       success: false,
       error
     });
-  
 }
-
-
 })
 
 app.post('/post/comment/reply/:commentId' , (req,res)=>{
@@ -514,13 +520,13 @@ app.post('/post/comment/reply/:commentId' , (req,res)=>{
   try {
        const decoded = jwt.verify(token, process.env.SECRET_CODE);
 
-    const user = db.users.find(u => u._id === decoded.userId);
+    const user = finduserByid(decoded.userId);
     if(!user) return res.status(404).json({
       message:"user not found",
       success:false
     })
 
-  const comment = db.comments.find((p) => p._id === req.params.commentId);
+  const comment = findcommentByid(req.params.commentId)
 
   if(!comment) return res.status(404).json({
     message:"comment not found",
@@ -530,7 +536,7 @@ app.post('/post/comment/reply/:commentId' , (req,res)=>{
    const addReply = {
     _id:id(),
     userId:decoded.userId,
-    reply,
+    replies:[],
     createdAt:Date.now()
    }
 
@@ -553,5 +559,5 @@ app.post('/post/comment/reply/:commentId' , (req,res)=>{
 
 //RUNNING
 app.listen(PORT, () => {
-  console.log(`App Is Runing on port ${PORT}`);
+  console.log(`App is Runing on port ${PORT}`);
 });
